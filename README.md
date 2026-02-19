@@ -1,73 +1,68 @@
-# Welcome to your Lovable project
+# Extract Hub
 
-## Project info
+Dashboard for Extract Pipeline - Business data extraction from Gmail emails via n8n + Groq AI.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Features
 
-## How can I edit this code?
+- Real-time dashboard showing extracted business data
+- Sources view for incoming emails and documents
+- Live updates via Supabase Realtime subscriptions
+- Confidence scoring with color-coded badges
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend**: React + TypeScript + Vite
+- **UI**: Tailwind CSS + shadcn/ui
+- **Database**: Supabase (PostgreSQL)
+- **State**: React Query
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+1. Install dependencies:
+```bash
+bun install
 ```
 
-**Edit a file directly in GitHub**
+2. Set up environment variables in `.env.local`:
+```
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+3. Run development server:
+```bash
+bun dev
+```
 
-**Use GitHub Codespaces**
+4. Build for production:
+```bash
+bun run build
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Database Schema
 
-## What technologies are used for this project?
+### sources
+- `id` (uuid, primary key)
+- `type` (text) - 'email' or 'meet_summary'
+- `subject` (text)
+- `raw_body` (text)
+- `sender` (text)
+- `received_at` (timestamptz)
+- `processed_at` (timestamptz, nullable)
+- `status` (text) - 'pending' | 'extracted' | 'failed'
+- `created_at` (timestamptz)
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### extractions
+- `id` (uuid, primary key)
+- `source_id` (uuid, foreign key → sources.id)
+- `company_name` (text, nullable)
+- `customer_name` (text, nullable)
+- `price` (numeric, nullable)
+- `quantity` (numeric, nullable)
+- `contact_email` (text, nullable)
+- `contact_phone` (text, nullable)
+- `payment_method` (text, nullable)
+- `delivery_type` (text, nullable)
+- `raw_extraction` (jsonb, nullable)
+- `confidence_score` (numeric, nullable)
+- `created_at` (timestamptz)
