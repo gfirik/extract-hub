@@ -1,0 +1,286 @@
+{
+  "name": "extract-pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "21b6e505-2fa9-46b8-8bd5-408cf85ef430",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Jw8zJXFFOrsVArld",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a data extraction assistant for a trading/logistics company.\n\nFirst determine if this email is related to procurement, purchase orders, trade, or logistics.\n\nIf it is NOT related, return ONLY this exact JSON:\n{\"skip\":true,\"reason\":\"not procurement related\"}\n\nIf it IS related, return ONLY this exact JSON with extracted values, no explanation, no markdown:\n{\"skip\":false,\"type\":\"email\",\"company_name\":null,\"customer_name\":null,\"price\":null,\"quantity\":null,\"contact_email\":null,\"contact_phone\":null,\"payment_method\":null,\"delivery_type\":null,\"confidence\":0}\n\nIf a field is not found return null. Do not guess.\n\nFrom: {{ $('Gmail Trigger').item.json.from.text }}\nSubject: {{ $('Gmail Trigger').item.json.subject }}\nBody: {{ $('Gmail Trigger').item.json.text }}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "0858f5e6-6008-464b-9b2e-59b0dfca5390",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        208,
+        192
+      ],
+      "id": "8c655676-8955-4961-8e00-78c27e4808ba",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "dKi7eHfrEPyTS1sD",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "sources",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "type",
+              "fieldValue": "email"
+            },
+            {
+              "fieldId": "raw_body",
+              "fieldValue": "={{ $('Gmail Trigger').item.json.text }}"
+            },
+            {
+              "fieldId": "sender",
+              "fieldValue": "={{ $('Gmail Trigger').item.json.from.text }}"
+            },
+            {
+              "fieldId": "subject",
+              "fieldValue": "={{ $('Gmail Trigger').item.json.subject }}"
+            },
+            {
+              "fieldId": "received_at",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "extracted"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        768,
+        0
+      ],
+      "id": "9e0901fc-19f6-4bcb-b9d2-a379f11a640c",
+      "name": "Sources",
+      "credentials": {
+        "supabaseApi": {
+          "id": "k5ViKSG98jNC5iSh",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "extractions",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "source_id",
+              "fieldValue": "={{ $('Sources').item.json.id }}"
+            },
+            {
+              "fieldId": "company_name",
+              "fieldValue": "={{ JSON.parse($('Basic LLM Chain').item.json.text).company_name }}"
+            },
+            {
+              "fieldId": "customer_name",
+              "fieldValue": "={{ JSON.parse($('Basic LLM Chain').item.json.text).customer_name }}"
+            },
+            {
+              "fieldId": "price",
+              "fieldValue": "={{ JSON.parse($('Basic LLM Chain').item.json.text).price }}"
+            },
+            {
+              "fieldId": "quantity",
+              "fieldValue": "={{ JSON.parse($('Basic LLM Chain').item.json.text).quantity }}"
+            },
+            {
+              "fieldId": "contact_email",
+              "fieldValue": "={{ JSON.parse($('Basic LLM Chain').item.json.text).contact_email }}"
+            },
+            {
+              "fieldId": "contact_phone",
+              "fieldValue": "={{ JSON.parse($('Basic LLM Chain').item.json.text).contact_phone }}"
+            },
+            {
+              "fieldId": "payment_method",
+              "fieldValue": "={{ JSON.parse($('Basic LLM Chain').item.json.text).payment_method }}"
+            },
+            {
+              "fieldId": "delivery_type",
+              "fieldValue": "={{ JSON.parse($('Basic LLM Chain').item.json.text).delivery_type }}"
+            },
+            {
+              "fieldId": "confidence_score",
+              "fieldValue": "={{ JSON.parse($('Basic LLM Chain').item.json.text).confidence }}"
+            },
+            {
+              "fieldId": "raw_extraction",
+              "fieldValue": "={{ $('Basic LLM Chain').item.json.text }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        976,
+        0
+      ],
+      "id": "6372dec3-7810-4f54-bc14-3064a65edec2",
+      "name": "Extractions",
+      "credentials": {
+        "supabaseApi": {
+          "id": "k5ViKSG98jNC5iSh",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f5d488f8-293d-4b88-babb-915ba7d93618",
+              "leftValue": "={{ JSON.parse($('Basic LLM Chain').item.json.text.trim()).skip }}",
+              "rightValue": "false",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        528,
+        80
+      ],
+      "id": "af2d3a5b-5a96-4de3-9dda-b04b1fa580dd",
+      "name": "If"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sources": {
+      "main": [
+        [
+          {
+            "node": "Extractions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7a93cbf7-8cc4-44bc-a23d-5ddc1a378509",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7831989536da8fa1988e2d4349d87a97b0367c89d679735fbed903fb4f2571e0"
+  },
+  "id": "ZZ5hzRQCEKAkQl0X",
+  "tags": []
+}
