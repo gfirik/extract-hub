@@ -1,68 +1,110 @@
 # Extract Hub
 
-Dashboard for Extract Pipeline - Business data extraction from Gmail emails via n8n + Groq AI.
+A real-time dashboard for viewing business data extracted from Gmail emails via n8n + Groq AI.
 
-## Features
+## Stack
 
-- Real-time dashboard showing extracted business data
-- Sources view for incoming emails and documents
-- Live updates via Supabase Realtime subscriptions
-- Confidence scoring with color-coded badges
+- **Frontend:** React + TypeScript + Vite
+- **Styling:** Tailwind CSS + shadcn/ui
+- **Database:** Supabase (PostgreSQL + Realtime)
+- **Automation:** n8n + Groq AI
 
-## Tech Stack
+## Quick Start
 
-- **Frontend**: React + TypeScript + Vite
-- **UI**: Tailwind CSS + shadcn/ui
-- **Database**: Supabase (PostgreSQL)
-- **State**: React Query
-
-## Getting Started
-
-1. Install dependencies:
 ```bash
+# Install dependencies
 bun install
-```
 
-2. Set up environment variables in `.env.local`:
-```
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your Supabase credentials
 
-3. Run development server:
-```bash
+# Run development server
 bun dev
 ```
 
-4. Build for production:
-```bash
-bun run build
+## Environment Variables
+
+Create `.env.local` in the project root:
+
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 ## Database Schema
 
 ### sources
-- `id` (uuid, primary key)
-- `type` (text) - 'email' or 'meet_summary'
-- `subject` (text)
-- `raw_body` (text)
-- `sender` (text)
-- `received_at` (timestamptz)
-- `processed_at` (timestamptz, nullable)
-- `status` (text) - 'pending' | 'extracted' | 'failed'
-- `created_at` (timestamptz)
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| type | text | 'email' or 'meet_summary' |
+| subject | text | Email subject |
+| raw_body | text | Full email content |
+| sender | text | Sender email address |
+| received_at | timestamptz | When email was received |
+| processed_at | timestamptz | When extraction completed |
+| status | text | 'pending', 'extracted', 'failed' |
+| created_at | timestamptz | Record creation time |
 
 ### extractions
-- `id` (uuid, primary key)
-- `source_id` (uuid, foreign key → sources.id)
-- `company_name` (text, nullable)
-- `customer_name` (text, nullable)
-- `price` (numeric, nullable)
-- `quantity` (numeric, nullable)
-- `contact_email` (text, nullable)
-- `contact_phone` (text, nullable)
-- `payment_method` (text, nullable)
-- `delivery_type` (text, nullable)
-- `raw_extraction` (jsonb, nullable)
-- `confidence_score` (numeric, nullable)
-- `created_at` (timestamptz)
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| source_id | uuid | FK to sources.id |
+| company_name | text | Extracted company |
+| customer_name | text | Extracted customer |
+| price | numeric | Extracted price |
+| quantity | numeric | Extracted quantity |
+| contact_email | text | Extracted contact |
+| contact_phone | text | Extracted phone |
+| payment_method | text | Payment type |
+| delivery_type | text | Delivery method |
+| raw_extraction | jsonb | Full AI response |
+| confidence_score | numeric | 0-1 confidence |
+| created_at | timestamptz | Record creation time |
+
+## n8n Workflow
+
+The n8n workflow JSON is stored in `/workflows`. To set up:
+
+1. Import `workflows/extract-pipeline.json` into your n8n instance
+2. Configure Gmail credentials
+3. Configure Supabase credentials
+4. Activate the workflow
+
+## Project Structure
+
+```
+src/
+├── components/     # UI components
+├── lib/
+│   ├── supabase.ts # Supabase client
+│   ├── queries.ts  # Data fetching functions
+│   └── types.ts    # TypeScript interfaces
+├── pages/
+│   ├── Index.tsx   # Dashboard page
+│   └── Sources.tsx # Sources page
+workflows/
+└── extract-pipeline.json  # n8n workflow
+```
+
+## Scripts
+
+```bash
+bun dev       # Start dev server
+bun build     # Production build
+bun preview   # Preview production build
+bun test      # Run tests
+bun lint      # Lint code
+```
+
+## Deployment
+
+Deploy to Vercel:
+
+```bash
+vercel
+```
+
+The `vercel.json` is pre-configured for SPA routing.
