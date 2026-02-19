@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, Inbox } from "lucide-react";
+import { AlertCircle, Inbox, RefreshCw } from "lucide-react";
 import SourceCard from "@/components/SourceCard";
 import SourceDrawer from "@/components/SourceDrawer";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,14 +29,12 @@ const Sources = () => {
   useEffect(() => {
     fetchData();
 
-    // Set up realtime subscription for sources
     const channel = supabase
       .channel("sources-changes")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "sources" },
         () => {
-          // Refetch all data when sources change
           fetchData();
         }
       )
@@ -49,18 +47,21 @@ const Sources = () => {
 
   if (error) {
     return (
-      <div className="px-8 py-8">
-        <div className="flex flex-col items-center justify-center rounded-lg border border-destructive/50 bg-destructive/10 py-20">
-          <AlertCircle className="h-12 w-12 text-destructive" />
-          <h3 className="mt-4 text-lg font-semibold text-foreground">Error Loading Data</h3>
-          <p className="mt-1 text-sm text-muted-foreground">{error}</p>
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-destructive/30 bg-gradient-to-br from-destructive/5 to-destructive/10 py-16 sm:py-20 animate-fade-in">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-destructive/10">
+            <AlertCircle className="h-8 w-8 text-destructive" />
+          </div>
+          <h3 className="mt-6 text-lg font-semibold text-foreground">Error Loading Data</h3>
+          <p className="mt-2 text-sm text-muted-foreground text-center max-w-sm px-4">{error}</p>
           <button
             onClick={() => {
               setLoading(true);
               fetchData();
             }}
-            className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 active:scale-95"
           >
+            <RefreshCw className="h-4 w-4" />
             Try Again
           </button>
         </div>
@@ -69,31 +70,44 @@ const Sources = () => {
   }
 
   return (
-    <div className="px-8 py-8">
+    <div className="p-4 sm:p-6 lg:p-8">
+      {/* Header */}
       <div className="mb-8">
-        <h1 className="text-xl font-bold text-foreground">Sources</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Incoming emails and documents feeding your pipeline.</p>
+        <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Sources</h1>
+        <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+          Incoming emails and documents feeding your pipeline
+        </p>
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Skeleton className="h-32 rounded-lg" />
-          <Skeleton className="h-32 rounded-lg" />
-          <Skeleton className="h-32 rounded-lg" />
-          <Skeleton className="h-32 rounded-lg" />
-          <Skeleton className="h-32 rounded-lg" />
-          <Skeleton className="h-32 rounded-lg" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <Skeleton className="h-36 rounded-2xl" />
+          <Skeleton className="h-36 rounded-2xl" />
+          <Skeleton className="h-36 rounded-2xl" />
+          <Skeleton className="h-36 rounded-2xl" />
+          <Skeleton className="h-36 rounded-2xl" />
+          <Skeleton className="h-36 rounded-2xl" />
         </div>
       ) : sources.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-card py-20">
-          <Inbox className="h-12 w-12 text-muted-foreground/40" />
-          <h3 className="mt-4 text-lg font-semibold text-foreground">No sources yet</h3>
-          <p className="mt-1 text-sm text-muted-foreground">Incoming emails and documents will appear here.</p>
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-card py-16 sm:py-20 animate-fade-in">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+            <Inbox className="h-8 w-8 text-muted-foreground/50" />
+          </div>
+          <h3 className="mt-6 text-lg font-semibold text-foreground">No sources yet</h3>
+          <p className="mt-2 text-sm text-muted-foreground text-center max-w-sm px-4">
+            Incoming emails and documents will appear here once they're received by the pipeline.
+          </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {sources.map(source => (
-            <SourceCard key={source.id} source={source} onClick={() => setSelected(source)} />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {sources.map((source, index) => (
+            <div
+              key={source.id}
+              className="animate-slide-up"
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
+              <SourceCard source={source} onClick={() => setSelected(source)} />
+            </div>
           ))}
         </div>
       )}
