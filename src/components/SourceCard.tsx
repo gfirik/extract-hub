@@ -1,11 +1,21 @@
-import { SourceEmail } from "@/data/mockData";
+import type { Source } from "@/lib/types";
 import StatusBadge from "./StatusBadge";
 import { Mail } from "lucide-react";
+import { format } from "date-fns";
 
 interface SourceCardProps {
-  source: SourceEmail;
+  source: Source;
   onClick: () => void;
 }
+
+const formatDate = (dateStr: string | null): string => {
+  if (!dateStr) return "—";
+  try {
+    return format(new Date(dateStr), "MMM d, yyyy");
+  } catch {
+    return "—";
+  }
+};
 
 const SourceCard = ({ source, onClick }: SourceCardProps) => {
   return (
@@ -19,13 +29,13 @@ const SourceCard = ({ source, onClick }: SourceCardProps) => {
             <Mail className="h-4 w-4 text-muted-foreground" />
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-foreground">{source.sender}</p>
-            <p className="truncate text-sm text-muted-foreground">{source.subject}</p>
+            <p className="truncate text-sm font-semibold text-foreground">{source.sender ?? "—"}</p>
+            <p className="truncate text-sm text-muted-foreground">{source.subject ?? "—"}</p>
           </div>
         </div>
         <StatusBadge status={source.status} />
       </div>
-      <p className="mt-3 text-xs text-muted-foreground">{source.date}</p>
+      <p className="mt-3 text-xs text-muted-foreground">{formatDate(source.received_at)}</p>
     </button>
   );
 };

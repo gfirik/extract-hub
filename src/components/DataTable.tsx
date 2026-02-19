@@ -1,35 +1,56 @@
 import { useState, useMemo } from "react";
 import { ArrowUpDown, Inbox } from "lucide-react";
 import ConfidenceBadge from "./ConfidenceBadge";
-import { Extraction } from "@/data/mockData";
+import type { ExtractionWithSource } from "@/lib/types";
+import { format } from "date-fns";
 
 interface DataTableProps {
-  data: Extraction[];
+  data: ExtractionWithSource[];
 }
 
-type SortKey = keyof Extraction;
+type SortKey = "company_name" | "customer_name" | "price" | "quantity" | "payment_method" | "delivery_type" | "contact_email" | "confidence_score" | "created_at";
 type SortDir = "asc" | "desc";
 
 const columns: { key: SortKey; label: string }[] = [
-  { key: "company", label: "Company" },
-  { key: "customer", label: "Customer" },
+  { key: "company_name", label: "Company" },
+  { key: "customer_name", label: "Customer" },
   { key: "price", label: "Price" },
   { key: "quantity", label: "Quantity" },
-  { key: "paymentMethod", label: "Payment Method" },
-  { key: "deliveryType", label: "Delivery Type" },
-  { key: "contact", label: "Contact" },
-  { key: "confidence", label: "Confidence" },
-  { key: "date", label: "Date" },
+  { key: "payment_method", label: "Payment Method" },
+  { key: "delivery_type", label: "Delivery Type" },
+  { key: "contact_email", label: "Contact" },
+  { key: "confidence_score", label: "Confidence" },
+  { key: "created_at", label: "Date" },
 ];
 
+const formatCurrency = (value: number | null): string => {
+  if (value === null) return "—";
+  return `$${value.toLocaleString()}`;
+};
+
+const formatDate = (dateStr: string | null): string => {
+  if (!dateStr) return "—";
+  try {
+    return format(new Date(dateStr), "MMM d, yyyy");
+  } catch {
+    return "—";
+  }
+};
+
 const DataTable = ({ data }: DataTableProps) => {
-  const [sortKey, setSortKey] = useState<SortKey>("date");
+  const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const sorted = useMemo(() => {
     return [...data].sort((a, b) => {
       const aVal = a[sortKey];
       const bVal = b[sortKey];
+
+      // Handle nulls - push to end
+      if (aVal === null && bVal === null) return 0;
+      if (aVal === null) return 1;
+      if (bVal === null) return -1;
+
       if (typeof aVal === "number" && typeof bVal === "number") {
         return sortDir === "asc" ? aVal - bVal : bVal - aVal;
       }
@@ -81,15 +102,21 @@ const DataTable = ({ data }: DataTableProps) => {
           <tbody>
             {sorted.map(row => (
               <tr key={row.id} className="border-b border-border last:border-0 transition-colors hover:bg-muted/30">
-                <td className="whitespace-nowrap px-4 py-3 font-medium text-foreground">{row.company}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-foreground">{row.customer}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-foreground">${row.price.toLocaleString()}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-foreground">{row.quantity}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{row.paymentMethod}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{row.deliveryType}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{row.contact}</td>
-                <td className="whitespace-nowrap px-4 py-3"><ConfidenceBadge value={row.confidence} /></td>
-                <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{row.date}</td>
+                <td className="whitespace-nowrap px-4 py-3 font-medium text-foreground">{row.company_name ?? "—"}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-foreground">{row.customer_name ?? "—"}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-foreground">{formatCurrency(row.price)}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-foreground">{row.quantity ?? "—"}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{row.payment_method ?? "—"}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{row.delivery_type ?? "—"}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{row.contact_email ?? "—"}</td>
+                <td className="whitespace-nowrap px-4 py-3">
+                  {row.confidence_score !== null ? (
+                    <ConfidenceBadge value={row.confidence_score} />
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{formatDate(row.created_at)}</td>
               </tr>
             ))}
           </tbody>

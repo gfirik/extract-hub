@@ -1,19 +1,19 @@
 import { cn } from "@/lib/utils";
 
 interface StatusBadgeProps {
-  status: "extracted" | "needs_review" | "failed";
+  status: "pending" | "extracted" | "failed";
 }
 
 const labels: Record<string, string> = {
   extracted: "Extracted",
-  needs_review: "Needs Review",
+  pending: "Pending",
   failed: "Failed",
 };
 
 const StatusBadge = ({ status }: StatusBadgeProps) => {
   const colorClasses = {
     extracted: "bg-primary/10 text-primary",
-    needs_review: "bg-warning/10 text-warning-foreground",
+    pending: "bg-warning/10 text-warning-foreground",
     failed: "bg-destructive/10 text-destructive",
   };
 

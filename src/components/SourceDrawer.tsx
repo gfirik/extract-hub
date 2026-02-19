@@ -1,11 +1,21 @@
-import { SourceEmail } from "@/data/mockData";
+import type { Source } from "@/lib/types";
 import StatusBadge from "./StatusBadge";
 import { X } from "lucide-react";
+import { format } from "date-fns";
 
 interface SourceDrawerProps {
-  source: SourceEmail | null;
+  source: Source | null;
   onClose: () => void;
 }
+
+const formatDate = (dateStr: string | null): string => {
+  if (!dateStr) return "—";
+  try {
+    return format(new Date(dateStr), "MMM d, yyyy 'at' h:mm a");
+  } catch {
+    return "—";
+  }
+};
 
 const SourceDrawer = ({ source, onClose }: SourceDrawerProps) => {
   if (!source) return null;
@@ -22,21 +32,31 @@ const SourceDrawer = ({ source, onClose }: SourceDrawerProps) => {
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-foreground">{source.sender}</p>
+            <p className="text-sm font-medium text-foreground">{source.sender ?? "—"}</p>
             <StatusBadge status={source.status} />
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Subject</p>
-            <p className="text-sm text-foreground">{source.subject}</p>
+            <p className="text-sm text-foreground">{source.subject ?? "—"}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Date</p>
-            <p className="text-sm text-foreground">{source.date}</p>
+            <p className="text-xs text-muted-foreground">Type</p>
+            <p className="text-sm text-foreground capitalize">{source.type.replace("_", " ")}</p>
           </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Received</p>
+            <p className="text-sm text-foreground">{formatDate(source.received_at)}</p>
+          </div>
+          {source.processed_at && (
+            <div>
+              <p className="text-xs text-muted-foreground">Processed</p>
+              <p className="text-sm text-foreground">{formatDate(source.processed_at)}</p>
+            </div>
+          )}
           <div>
             <p className="mb-2 text-xs text-muted-foreground">Raw Body</p>
             <pre className="whitespace-pre-wrap rounded-lg bg-muted p-4 text-sm text-foreground font-mono leading-relaxed">
-              {source.body}
+              {source.raw_body ?? "No content available"}
             </pre>
           </div>
         </div>
