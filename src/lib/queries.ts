@@ -69,28 +69,18 @@ export async function getStats(): Promise<Stats> {
       throw todayError;
     }
 
-    // Get pending sources count
-    const { count: pending, error: pendingError } = await supabase
-      .from("sources")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "pending");
-
-    if (pendingError) {
-      console.error("Error fetching pending count:", pendingError);
-      throw pendingError;
-    }
-
-    // Get average confidence score
-    const { data: avgData, error: avgError } = await supabase
+    // Get average confidence score and delivery types
+    const { data: extractionsData, error: extractionsError } = await supabase
       .from("extractions")
-      .select("confidence_score");
+      .select("confidence_score, delivery_type");
 
-    if (avgError) {
-      console.error("Error fetching confidence scores:", avgError);
-      throw avgError;
+    if (extractionsError) {
+      console.error("Error fetching extractions data:", extractionsError);
+      throw extractionsError;
     }
 
-    const scores = avgData
+    // Calculate average confidence
+    const scores = extractionsData
       ?.map((e) => e.confidence_score)
       .filter((s): s is number => s !== null) || [];
 
@@ -98,11 +88,30 @@ export async function getStats(): Promise<Stats> {
       ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 100)
       : 0;
 
+    // Find most common delivery type
+    const deliveryTypes = extractionsData
+      ?.map((e) => e.delivery_type)
+      .filter((d): d is string => d !== null) || [];
+
+    const deliveryTypeCounts: Record<string, number> = {};
+    deliveryTypes.forEach((type) => {
+      deliveryTypeCounts[type] = (deliveryTypeCounts[type] || 0) + 1;
+    });
+
+    let topDeliveryType: string | null = null;
+    let maxCount = 0;
+    Object.entries(deliveryTypeCounts).forEach(([type, count]) => {
+      if (count > maxCount) {
+        maxCount = count;
+        topDeliveryType = type;
+      }
+    });
+
     return {
       total: total || 0,
       today: todayCount || 0,
-      pending: pending || 0,
       avgConfidence,
+      topDeliveryType,
     };
   } catch (error) {
     console.error("Failed to fetch stats:", error);

@@ -14,6 +14,7 @@ export interface Extraction {
   id: string;
   source_id: string;
   company_name: string | null;
+  product_name: string | null;
   customer_name: string | null;
   price: number | null;
   quantity: number | null;
@@ -21,6 +22,7 @@ export interface Extraction {
   contact_phone: string | null;
   payment_method: string | null;
   delivery_type: string | null;
+  delivery_deadline: string | null;
   raw_extraction: Record<string, unknown> | null;
   confidence_score: number | null;
   created_at: string;
@@ -33,6 +35,6 @@ export interface ExtractionWithSource extends Extraction {
 export interface Stats {
   total: number;
   today: number;
-  pending: number;
   avgConfidence: number;
+  topDeliveryType: string | null;
 }
