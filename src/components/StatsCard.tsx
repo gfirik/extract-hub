@@ -5,8 +5,7 @@ interface StatsCardProps {
   value: string | number;
   icon: ReactNode;
   suffix?: string;
-  trend?: "up" | "down" | "neutral";
-  accentColor?: "primary" | "blue" | "amber" | "purple";
+  accentColor?: "primary" | "blue" | "amber" | "purple" | "cyan";
 }
 
 const accentStyles = {
@@ -25,6 +24,10 @@ const accentStyles = {
   purple: {
     iconBg: "bg-gradient-to-br from-purple-500 to-pink-600",
     iconShadow: "shadow-purple-500/25",
+  },
+  cyan: {
+    iconBg: "bg-gradient-to-br from-sky-500 to-cyan-600",
+    iconShadow: "shadow-sky-500/25",
   },
 };
 

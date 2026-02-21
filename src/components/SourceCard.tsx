@@ -1,6 +1,6 @@
-import type { Source } from "@/lib/types";
+import type { Source, SourceType } from "@/lib/types";
 import StatusBadge from "./StatusBadge";
-import { Mail, FileText, ChevronRight, Video } from "lucide-react";
+import { Mail, FileText, ChevronRight, Video, Send } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -19,11 +19,16 @@ const formatDate = (dateStr: string | null): string => {
   }
 };
 
-const typeConfig = {
+const typeConfig: Record<SourceType, { icon: typeof Mail; label: string; classes: string }> = {
   email: {
     icon: Mail,
     label: "Email",
     classes: "bg-blue-50 text-blue-700 border-blue-200/50",
+  },
+  telegram: {
+    icon: Send,
+    label: "Telegram",
+    classes: "bg-sky-50 text-sky-700 border-sky-200/50",
   },
   meet_summary: {
     icon: Video,
@@ -40,6 +45,14 @@ const SourceCard = ({ source, onClick, isNew = false }: SourceCardProps) => {
   };
   const Icon = config.icon;
 
+  // For telegram, show "Telegram Message" if no subject
+  const displaySubject = source.type === "telegram" && !source.subject
+    ? "Telegram Message"
+    : source.subject ?? "No subject";
+
+  // For telegram, sender is the username
+  const displaySender = source.sender ?? "Unknown sender";
+
   return (
     <button
       onClick={onClick}
@@ -50,15 +63,23 @@ const SourceCard = ({ source, onClick, isNew = false }: SourceCardProps) => {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-4 min-w-0 flex-1">
-          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-emerald-100 transition-colors group-hover:from-primary/20 group-hover:to-emerald-200">
-            <Icon className="h-5 w-5 text-primary" />
+          <div className={cn(
+            "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl transition-colors",
+            source.type === "telegram"
+              ? "bg-gradient-to-br from-sky-100 to-cyan-100 group-hover:from-sky-200 group-hover:to-cyan-200"
+              : "bg-gradient-to-br from-primary/10 to-emerald-100 group-hover:from-primary/20 group-hover:to-emerald-200"
+          )}>
+            <Icon className={cn(
+              "h-5 w-5",
+              source.type === "telegram" ? "text-sky-600" : "text-primary"
+            )} />
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-foreground">
-              {source.sender ?? "Unknown sender"}
+              {displaySender}
             </p>
             <p className="mt-1 truncate text-sm text-muted-foreground">
-              {source.subject ?? "No subject"}
+              {displaySubject}
             </p>
           </div>
         </div>

@@ -1,6 +1,8 @@
+export type SourceType = "email" | "telegram" | "meet_summary";
+
 export interface Source {
   id: string;
-  type: "email" | "meet_summary";
+  type: SourceType;
   subject: string | null;
   raw_body: string | null;
   sender: string | null;
@@ -36,5 +38,5 @@ export interface Stats {
   total: number;
   today: number;
   avgConfidence: number;
-  topDeliveryType: string | null;
+  topSourceType: "email" | "telegram" | null;
 }

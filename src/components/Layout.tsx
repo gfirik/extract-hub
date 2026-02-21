@@ -6,7 +6,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
+    <div className="flex min-h-screen w-full bg-background overflow-x-hidden">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -18,7 +18,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
       {/* Sidebar */}
       <div
         className={`
-          fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0
+          fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 flex-shrink-0
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
@@ -26,7 +26,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
       </div>
 
       {/* Main content */}
-      <main className="flex-1 min-h-screen lg:overflow-y-auto">
+      <main className="flex-1 min-h-screen min-w-0 overflow-x-hidden">
         {/* Mobile header - Fixed position */}
         <div className="fixed top-0 left-0 right-0 z-30 flex items-center gap-4 border-b border-border bg-background/95 backdrop-blur-lg px-4 py-3 lg:hidden">
           <button
@@ -44,7 +44,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
         </div>
 
         {/* Content with top padding for fixed header on mobile */}
-        <div className="animate-fade-in pt-16 lg:pt-0">
+        <div className="pt-16 lg:pt-0 overflow-x-hidden">
           {children}
         </div>
       </main>

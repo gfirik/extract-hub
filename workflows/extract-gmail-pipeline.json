@@ -1,5 +1,5 @@
 {
-  "name": "extract-pipeline",
+  "name": "extract-gmail-pipeline",
   "nodes": [
     {
       "parameters": {
@@ -32,7 +32,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=You are a data extraction assistant for a trading/logistics company.\n\nFirst determine if this email is related to procurement, purchase orders, trade, or logistics.\n\nIf it is NOT related, return ONLY this exact JSON:\n{\"skip\":true,\"reason\":\"not procurement related\"}\n\nIf it IS related, return ONLY this exact JSON with extracted values, no explanation, no markdown:\n{\"skip\":false,\"type\":\"email\",\"company_name\":null,\"customer_name\":null,\"price\":null,\"quantity\":null,\"contact_email\":null,\"contact_phone\":null,\"payment_method\":null,\"delivery_type\":null,\"confidence\":0}\n\nIf a field is not found return null. Do not guess.\n\nFrom: {{ $('Gmail Trigger').item.json.from.text }}\nSubject: {{ $('Gmail Trigger').item.json.subject }}\nBody: {{ $('Gmail Trigger').item.json.text }}",
+        "text": "=You are a data extraction assistant for a trading/logistics company.\n\nFirst determine if this email is related to procurement, purchase orders, trade, or logistics.\n\nIf it is NOT related, return ONLY this exact JSON:\n{\"skip\":true,\"reason\":\"not procurement related\"}\n\nIf it IS related, return ONLY this exact JSON with extracted values, no explanation, no markdown:\n{\"skip\":false,\"type\":\"email\",\"company_name\":null,\"customer_name\":null,\"product_name\":null,\"price\":null,\"quantity\":null,\"contact_email\":null,\"contact_phone\":null,\"payment_method\":null,\"delivery_type\":null,\"delivery_deadline\":null,\"confidence\":0}\n\nIf a field is not found return null. Do not guess.\n\nFrom: {{ $('Gmail Trigger').item.json.from.text }}\nSubject: {{ $('Gmail Trigger').item.json.subject }}\nBody: {{ $('Gmail Trigger').item.json.text }}",
         "batching": {}
       },
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
@@ -99,7 +99,7 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        768,
+        752,
         0
       ],
       "id": "9e0901fc-19f6-4bcb-b9d2-a379f11a640c",
@@ -159,6 +159,14 @@
             {
               "fieldId": "raw_extraction",
               "fieldValue": "={{ $('Basic LLM Chain').item.json.text }}"
+            },
+            {
+              "fieldId": "product_name",
+              "fieldValue": "={{ JSON.parse($('Basic LLM Chain').item.json.text).product_name }}"
+            },
+            {
+              "fieldId": "delivery_deadline",
+              "fieldValue": "={{ JSON.parse($('Basic LLM Chain').item.json.text).delivery_deadline }}"
             }
           ]
         }
@@ -166,7 +174,7 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        976,
+        960,
         0
       ],
       "id": "6372dec3-7810-4f54-bc14-3064a65edec2",
@@ -207,8 +215,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        528,
-        80
+        512,
+        0
       ],
       "id": "af2d3a5b-5a96-4de3-9dda-b04b1fa580dd",
       "name": "If"
@@ -276,7 +284,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "7a93cbf7-8cc4-44bc-a23d-5ddc1a378509",
+  "versionId": "f9e94e0c-b61f-4b8c-a8e2-5fb57b17e6bc",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "7831989536da8fa1988e2d4349d87a97b0367c89d679735fbed903fb4f2571e0"

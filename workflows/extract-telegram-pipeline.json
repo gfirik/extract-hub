@@ -1,0 +1,617 @@
+{
+  "name": "extract-telegram-pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "497fd0e8-d235-4cc6-ba5a-104d5fdb3278",
+      "name": "Telegram Trigger",
+      "webhookId": "1bc60f43-64d3-4528-960d-4b6e57c3ecf7",
+      "credentials": {
+        "telegramApi": {
+          "id": "e2NyHfaiHLUVZqv4",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const chatId = String($input.item.json.message.chat.id);\nconst text = $input.item.json.message.text;\n\nreturn [{\n  json: {\n    chat_id: chatId,\n    new_message: text,\n    sender_name: $input.item.json.message.from.first_name\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "ce2b217b-e11b-41d5-bf24-76f17e4dd91a",
+      "name": "PrepareData"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "telegram_sessions",
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.chat_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        32,
+        240
+      ],
+      "id": "6c8c29e1-7b46-4ada-bd4b-d8cf3f36f72e",
+      "name": "GetSession",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "k5ViKSG98jNC5iSh",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const chatId = $('PrepareData').item.json.chat_id;\nconst newMessage = $('PrepareData').item.json.new_message;\nconst senderName = $('PrepareData').item.json.sender_name;\n\nconst sessionData = $input.item.json;\nconst sessionExists = sessionData.id !== undefined;\n\n// Get existing messages or start fresh\nlet messages = sessionExists && sessionData.messages ? sessionData.messages : [];\n\n// Append new message\nmessages.push({\n  role: 'user',\n  text: newMessage,\n  timestamp: new Date().toISOString()\n});\n\n// Build full conversation text\nconst conversation = messages.map(m => m.text).join('\\n');\n\nreturn [{\n  json: {\n    chat_id: chatId,\n    sender_name: senderName,\n    session_exists: sessionExists,\n    session_id: sessionExists ? sessionData.id : null,\n    messages: messages,\n    conversation: conversation\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        240
+      ],
+      "id": "0ffd378a-a1d5-4f03-bef1-c5ae62bf7028",
+      "name": "MergeSession"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        464,
+        256
+      ],
+      "id": "91e22d89-6f4a-4d14-9d8c-b46840e0f08d",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "dKi7eHfrEPyTS1sD",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an order data extractor for a trading and logistics company.\n\nIMPORTANT RULES:\n- Extract numeric values ONLY for price and quantity (no units, no currency symbols, just the number)\n- If a field is not found, return null\n- missing_fields must list ALL required fields that are absent from the conversation\n- is_complete is true ONLY when company_name or customer_name AND product_name AND quantity AND at least one contact (email or phone) are all present\n\nRequired fields:\n- company_name: name of the company placing the order\n- customer_name: name of the contact person\n- product_name: what product they want to order\n- quantity: how many units (number only, no units)\n- contact_email OR contact_phone: at least one must be present\n\nOptional but extract if present:\n- price: numeric value only (e.g. 285, not \"$285 per cubic meter\")\n- payment_method: how they will pay\n- delivery_type: delivery terms (FOB, CIF, DAP etc.)\n- delivery_deadline: date of delivery\n\nConversation to analyze:\n{{ $('MergeSession').item.json.conversation }}\n\nReturn ONLY valid JSON, no markdown, no explanation, no code blocks:\n{\n  \"is_complete\": false,\n  \"missing_fields\": [\"company_name\", \"product_name\", \"quantity\", \"contact_email\", \"contact_phone\"],\n  \"extracted\": {\n    \"company_name\": null,\n    \"customer_name\": null,\n    \"product_name\": null,\n    \"price\": null,\n    \"quantity\": null,\n    \"contact_email\": null,\n    \"contact_phone\": null,\n    \"payment_method\": null,\n    \"delivery_type\": null,\n    \"delivery_deadline\": null\n  },\n  \"confidence\": 0\n}\n\nThe missing_fields array must contain the names of fields that are genuinely missing from the conversation. Never return an empty missing_fields array if is_complete is false.",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        464,
+        16
+      ],
+      "id": "3e49a563-a6eb-45b0-99c8-d71d78bbfeff",
+      "name": "CheckComplete"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "4fb74150-66a9-4bbe-a942-4362bc7a1ba2",
+              "leftValue": "={{ JSON.parse($('CheckComplete').item.json.text).is_complete }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        784,
+        16
+      ],
+      "id": "13e0a4c2-c4df-4642-872e-ffb754fa21b6",
+      "name": "IsComplete"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('PrepareData').item.json.chat_id }}",
+        "text": "=Hi {{ $('PrepareData').item.json.sender_name }}! I need a few more details.\n\nMissing info:\n{{ JSON.parse($('CheckComplete').item.json.text).missing_fields.join('\\n- ') }}\n\nPlease provide the missing details.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        864,
+        256
+      ],
+      "id": "69457430-e44d-4cde-bc64-d3a44679d9af",
+      "name": "ReplyMissing",
+      "webhookId": "cdc6ad8f-b4ab-466f-89f3-e585b7aeed40",
+      "credentials": {
+        "telegramApi": {
+          "id": "e2NyHfaiHLUVZqv4",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "sources",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "type",
+              "fieldValue": "telegram"
+            },
+            {
+              "fieldId": "raw_body",
+              "fieldValue": "={{ $('MergeSession').item.json.conversation }}"
+            },
+            {
+              "fieldId": "sender",
+              "fieldValue": "={{ $('PrepareData').item.json.sender_name }}"
+            },
+            {
+              "fieldId": "received_at",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "extracted"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        992,
+        0
+      ],
+      "id": "36a9595b-7c0a-494c-8119-ba0cd1e7685e",
+      "name": "SaveSource",
+      "credentials": {
+        "supabaseApi": {
+          "id": "k5ViKSG98jNC5iSh",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "extractions",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "source_id",
+              "fieldValue": "={{ $('SaveSource').item.json.id }}"
+            },
+            {
+              "fieldId": "company_name",
+              "fieldValue": "={{ JSON.parse($('CheckComplete').item.json.text).extracted.company_name }}"
+            },
+            {
+              "fieldId": "customer_name",
+              "fieldValue": "={{ JSON.parse($('CheckComplete').item.json.text).extracted.customer_name }}"
+            },
+            {
+              "fieldId": "product_name",
+              "fieldValue": "={{ JSON.parse($('CheckComplete').item.json.text).extracted.product_name }}"
+            },
+            {
+              "fieldId": "price",
+              "fieldValue": "={{ parseFloat(JSON.parse($('CheckComplete').item.json.text).extracted.price) }}"
+            },
+            {
+              "fieldId": "quantity",
+              "fieldValue": "={{ parseFloat(JSON.parse($('CheckComplete').item.json.text).extracted.quantity) }}"
+            },
+            {
+              "fieldId": "contact_email",
+              "fieldValue": "={{ JSON.parse($('CheckComplete').item.json.text).extracted.contact_email }}"
+            },
+            {
+              "fieldId": "contact_phone",
+              "fieldValue": "={{ JSON.parse($('CheckComplete').item.json.text).extracted.contact_phone }}"
+            },
+            {
+              "fieldId": "payment_method",
+              "fieldValue": "={{ JSON.parse($('CheckComplete').item.json.text).extracted.payment_method }}"
+            },
+            {
+              "fieldId": "delivery_type",
+              "fieldValue": "={{ JSON.parse($('CheckComplete').item.json.text).extracted.delivery_type }}"
+            },
+            {
+              "fieldId": "delivery_deadline",
+              "fieldValue": "={{ JSON.parse($('CheckComplete').item.json.text).extracted.delivery_deadline }}"
+            },
+            {
+              "fieldId": "confidence_score",
+              "fieldValue": "={{ JSON.parse($('CheckComplete').item.json.text).extracted.confidence }}"
+            },
+            {
+              "fieldId": "raw_extraction",
+              "fieldValue": "={{ $('CheckComplete').item.json.text }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        0
+      ],
+      "id": "9b27c91d-3116-4b0e-a745-910f80557fbb",
+      "name": "SaveExtraction",
+      "credentials": {
+        "supabaseApi": {
+          "id": "k5ViKSG98jNC5iSh",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('PrepareData').item.json.chat_id }}",
+        "text": "=✅ Order received, {{ $('PrepareData').item.json.sender_name }}!  Your order has been successfully processed and saved.  Here's a summary: Company: {{ JSON.parse($('CheckComplete').item.json.text).extracted.company_name }} Product: {{ JSON.parse($('CheckComplete').item.json.text).extracted.product_name }} Quantity: {{ JSON.parse($('CheckComplete').item.json.text).extracted.quantity }} Price: {{ JSON.parse($('CheckComplete').item.json.text).extracted.price }}  Thank you!",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1392,
+        0
+      ],
+      "id": "2212af18-509d-4be8-a01b-45e640e2909e",
+      "name": "ConfirmOrder",
+      "webhookId": "107db441-59bf-4812-bcb5-63409492ce8f",
+      "credentials": {
+        "telegramApi": {
+          "id": "e2NyHfaiHLUVZqv4",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "telegram_sessions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "condition": "eq",
+              "keyValue": "={{ $('PrepareData').item.json.chat_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1584,
+        0
+      ],
+      "id": "d5b79946-1f9e-404b-b0b7-a5f7633ca2e4",
+      "name": "ClearSession",
+      "credentials": {
+        "supabaseApi": {
+          "id": "k5ViKSG98jNC5iSh",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "29011462-9c61-4269-b750-2dbd7fad5bff",
+              "leftValue": "={{ $('MergeSession').item.json.session_exists }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1072,
+        256
+      ],
+      "id": "26afaf02-e3cc-43a6-a0bc-9655acdf5bbd",
+      "name": "SessionExistsAlready"
+    },
+    {
+      "parameters": {
+        "tableId": "telegram_sessions",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "chat_id",
+              "fieldValue": "={{ $('PrepareData').item.json.chat_id }}"
+            },
+            {
+              "fieldId": "messages",
+              "fieldValue": "={{ $('MergeSession').item.json.messages }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "incomplete"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        640,
+        240
+      ],
+      "id": "19100e83-8c69-4969-9b3f-a70aaed61083",
+      "name": "CreateSession",
+      "credentials": {
+        "supabaseApi": {
+          "id": "k5ViKSG98jNC5iSh",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "telegram_sessions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "chat_id",
+              "condition": "eq",
+              "keyValue": "={{ $('PrepareData').item.json.chat_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "messages",
+              "fieldValue": "={{ $('MergeSession').item.json.messages }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "incomplete"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1296,
+        240
+      ],
+      "id": "5a840f3b-89f3-4dec-98a9-5b8d790e05ce",
+      "name": "UpdateSession",
+      "credentials": {
+        "supabaseApi": {
+          "id": "k5ViKSG98jNC5iSh",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "PrepareData",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PrepareData": {
+      "main": [
+        [
+          {
+            "node": "GetSession",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetSession": {
+      "main": [
+        [
+          {
+            "node": "MergeSession",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MergeSession": {
+      "main": [
+        [
+          {
+            "node": "CheckComplete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "CheckComplete",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CheckComplete": {
+      "main": [
+        [
+          {
+            "node": "IsComplete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IsComplete": {
+      "main": [
+        [
+          {
+            "node": "SaveSource",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ReplyMissing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ReplyMissing": {
+      "main": [
+        [
+          {
+            "node": "SessionExistsAlready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SaveSource": {
+      "main": [
+        [
+          {
+            "node": "SaveExtraction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SaveExtraction": {
+      "main": [
+        [
+          {
+            "node": "ConfirmOrder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ConfirmOrder": {
+      "main": [
+        [
+          {
+            "node": "ClearSession",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SessionExistsAlready": {
+      "main": [
+        [
+          {
+            "node": "UpdateSession",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CreateSession",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3c5df1f2-eed8-4532-9669-4b27e2ded47e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7831989536da8fa1988e2d4349d87a97b0367c89d679735fbed903fb4f2571e0"
+  },
+  "id": "QK7gQtw1wy81hltB",
+  "tags": []
+}

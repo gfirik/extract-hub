@@ -7,7 +7,13 @@ export async function getExtractions(): Promise<ExtractionWithSource[]> {
       .from("extractions")
       .select(`
         *,
-        sources (*)
+        sources (
+          id,
+          type,
+          sender,
+          subject,
+          status
+        )
       `)
       .order("created_at", { ascending: false });
 
@@ -69,10 +75,13 @@ export async function getStats(): Promise<Stats> {
       throw todayError;
     }
 
-    // Get average confidence score and delivery types
+    // Get extractions with source type to calculate stats
     const { data: extractionsData, error: extractionsError } = await supabase
       .from("extractions")
-      .select("confidence_score, delivery_type");
+      .select(`
+        confidence_score,
+        sources (type)
+      `);
 
     if (extractionsError) {
       console.error("Error fetching extractions data:", extractionsError);
@@ -88,30 +97,26 @@ export async function getStats(): Promise<Stats> {
       ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 100)
       : 0;
 
-    // Find most common delivery type
-    const deliveryTypes = extractionsData
-      ?.map((e) => e.delivery_type)
-      .filter((d): d is string => d !== null) || [];
+    // Find top source type
+    let emailCount = 0;
+    let telegramCount = 0;
 
-    const deliveryTypeCounts: Record<string, number> = {};
-    deliveryTypes.forEach((type) => {
-      deliveryTypeCounts[type] = (deliveryTypeCounts[type] || 0) + 1;
+    extractionsData?.forEach((e) => {
+      const sourceType = (e.sources as { type?: string } | null)?.type;
+      if (sourceType === "email") emailCount++;
+      else if (sourceType === "telegram") telegramCount++;
     });
 
-    let topDeliveryType: string | null = null;
-    let maxCount = 0;
-    Object.entries(deliveryTypeCounts).forEach(([type, count]) => {
-      if (count > maxCount) {
-        maxCount = count;
-        topDeliveryType = type;
-      }
-    });
+    let topSourceType: "email" | "telegram" | null = null;
+    if (emailCount > 0 || telegramCount > 0) {
+      topSourceType = emailCount >= telegramCount ? "email" : "telegram";
+    }
 
     return {
       total: total || 0,
       today: todayCount || 0,
       avgConfidence,
-      topDeliveryType,
+      topSourceType,
     };
   } catch (error) {
     console.error("Failed to fetch stats:", error);

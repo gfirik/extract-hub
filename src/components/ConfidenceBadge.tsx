@@ -8,33 +8,22 @@ const ConfidenceBadge = ({ value }: ConfidenceBadgeProps) => {
   const percentage = Math.round(value * 100);
 
   let colorClasses: string;
-  let bgGradient: string;
 
   if (value >= 0.8) {
-    colorClasses = "text-emerald-700";
-    bgGradient = "bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200/50";
+    colorClasses = "bg-emerald-100 text-emerald-700";
   } else if (value >= 0.5) {
-    colorClasses = "text-amber-700";
-    bgGradient = "bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200/50";
+    colorClasses = "bg-amber-100 text-amber-700";
   } else {
-    colorClasses = "text-red-700";
-    bgGradient = "bg-gradient-to-r from-red-50 to-rose-50 border-red-200/50";
+    colorClasses = "bg-red-100 text-red-700";
   }
 
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold",
-        bgGradient,
+        "inline-flex items-center justify-center rounded-md px-2 py-0.5 text-xs font-semibold tabular-nums",
         colorClasses
       )}
     >
-      <span
-        className={cn(
-          "h-1.5 w-1.5 rounded-full",
-          value >= 0.8 ? "bg-emerald-500" : value >= 0.5 ? "bg-amber-500" : "bg-red-500"
-        )}
-      />
       {percentage}%
     </span>
   );

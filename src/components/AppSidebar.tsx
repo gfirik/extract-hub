@@ -1,11 +1,15 @@
+import { useState } from "react";
 import { NavLink } from "@/components/NavLink";
-import { LayoutDashboard, Inbox, X, Zap } from "lucide-react";
+import { LayoutDashboard, Inbox, X, Zap, ChevronDown, Mail, Send } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface AppSidebarProps {
   onClose?: () => void;
 }
 
 const AppSidebar = ({ onClose }: AppSidebarProps) => {
+  const [sourcesExpanded, setSourcesExpanded] = useState(true);
+
   return (
     <aside className="flex h-screen w-64 flex-col bg-sidebar border-r border-sidebar-border">
       {/* Header */}
@@ -46,16 +50,71 @@ const AppSidebar = ({ onClose }: AppSidebarProps) => {
           </div>
           Dashboard
         </NavLink>
-        <NavLink
-          to="/sources"
-          className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-white"
-          activeClassName="bg-sidebar-accent text-white shadow-lg shadow-black/20"
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-accent/50 transition-colors group-hover:bg-primary/20">
-            <Inbox className="h-4 w-4" />
+
+        {/* Sources with expandable subtabs */}
+        <div>
+          <NavLink
+            to="/sources"
+            end
+            className="group flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-white"
+            activeClassName="bg-sidebar-accent text-white shadow-lg shadow-black/20"
+            onClick={(e) => {
+              // Prevent navigation when clicking the chevron area
+              if ((e.target as HTMLElement).closest('button')) {
+                e.preventDefault();
+              }
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-accent/50 transition-colors group-hover:bg-primary/20">
+                <Inbox className="h-4 w-4" />
+              </div>
+              Sources
+            </div>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setSourcesExpanded(!sourcesExpanded);
+              }}
+              className="p-1 rounded hover:bg-sidebar-accent/50"
+            >
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 transition-transform duration-200",
+                  sourcesExpanded && "rotate-180"
+                )}
+              />
+            </button>
+          </NavLink>
+
+          {/* Subtabs */}
+          <div
+            className={cn(
+              "overflow-hidden transition-all duration-200",
+              sourcesExpanded ? "max-h-32 opacity-100" : "max-h-0 opacity-0"
+            )}
+          >
+            <div className="ml-6 mt-1 space-y-1 border-l border-sidebar-border pl-4">
+              <NavLink
+                to="/sources?type=email"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-white"
+                activeClassName="bg-sidebar-accent/70 text-white"
+              >
+                <Mail className="h-3.5 w-3.5 text-blue-400" />
+                Email
+              </NavLink>
+              <NavLink
+                to="/sources?type=telegram"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-white"
+                activeClassName="bg-sidebar-accent/70 text-white"
+              >
+                <Send className="h-3.5 w-3.5 text-sky-400" />
+                Telegram
+              </NavLink>
+            </div>
           </div>
-          Sources
-        </NavLink>
+        </div>
       </nav>
 
       {/* Footer */}

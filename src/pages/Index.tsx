@@ -2,7 +2,8 @@ import {
   Database,
   CalendarDays,
   TrendingUp,
-  Truck,
+  Mail,
+  Send,
   AlertCircle,
   RefreshCw,
 } from "lucide-react";
@@ -38,6 +39,17 @@ const Index = () => {
     refetchExtractions();
     refetchStats();
   };
+
+  // Get top source display info
+  const getTopSourceDisplay = () => {
+    if (!stats?.topSourceType) return { label: "—", icon: <Mail className="h-5 w-5" />, color: "blue" as const };
+    if (stats.topSourceType === "telegram") {
+      return { label: "Telegram", icon: <Send className="h-5 w-5" />, color: "cyan" as const };
+    }
+    return { label: "Email", icon: <Mail className="h-5 w-5" />, color: "blue" as const };
+  };
+
+  const topSource = getTopSourceDisplay();
 
   if (isError) {
     return (
@@ -85,7 +97,7 @@ const Index = () => {
         )}
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid - 4 cards */}
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {isLoading ? (
           <>
@@ -104,10 +116,7 @@ const Index = () => {
                 accentColor="primary"
               />
             </div>
-            <div
-              className="animate-slide-up"
-              style={{ animationDelay: "50ms" }}
-            >
+            <div className="animate-slide-up" style={{ animationDelay: "50ms" }}>
               <StatsCard
                 title="Today's Extractions"
                 value={stats?.today ?? 0}
@@ -115,10 +124,7 @@ const Index = () => {
                 accentColor="blue"
               />
             </div>
-            <div
-              className="animate-slide-up"
-              style={{ animationDelay: "100ms" }}
-            >
+            <div className="animate-slide-up" style={{ animationDelay: "100ms" }}>
               <StatsCard
                 title="Avg Confidence"
                 value={stats?.avgConfidence ?? 0}
@@ -127,15 +133,12 @@ const Index = () => {
                 accentColor="purple"
               />
             </div>
-            <div
-              className="animate-slide-up"
-              style={{ animationDelay: "150ms" }}
-            >
+            <div className="animate-slide-up" style={{ animationDelay: "150ms" }}>
               <StatsCard
-                title="Top Delivery Type"
-                value={stats?.topDeliveryType ?? "—"}
-                icon={<Truck className="h-5 w-5" />}
-                accentColor="amber"
+                title="Top Source"
+                value={topSource.label}
+                icon={topSource.icon}
+                accentColor={topSource.color}
               />
             </div>
           </>
@@ -144,7 +147,7 @@ const Index = () => {
 
       {/* Table Section */}
       <div className="animate-slide-up" style={{ animationDelay: "200ms" }}>
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4">
           <h2 className="text-lg font-semibold text-foreground">
             Recent Extractions
           </h2>
@@ -152,10 +155,10 @@ const Index = () => {
 
         {isLoading ? (
           <div className="space-y-3">
+            <Skeleton className="h-12 rounded-xl" />
             <Skeleton className="h-14 rounded-xl" />
-            <Skeleton className="h-16 rounded-xl" />
-            <Skeleton className="h-16 rounded-xl" />
-            <Skeleton className="h-16 rounded-xl" />
+            <Skeleton className="h-14 rounded-xl" />
+            <Skeleton className="h-14 rounded-xl" />
           </div>
         ) : (
           <DataTable data={extractions} newRowIds={newRowIds} />

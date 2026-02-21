@@ -59,6 +59,9 @@
   * {
     @apply border-border;
   }
+  html, body {
+    @apply overflow-x-hidden;
+  }
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
@@ -96,6 +99,29 @@
   .animate-scale-in {
     animation: scaleIn 0.2s ease-out;
   }
+
+  /* Thin scrollbar for tables */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.2);
+    border-radius: 2px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.4);
+  }
 }
 
 @keyframes fadeIn {
@@ -118,7 +144,7 @@
   to { transform: scale(1); opacity: 1; }
 }
 
-/* Custom scrollbar */
+/* Global scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
